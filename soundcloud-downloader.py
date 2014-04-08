@@ -72,25 +72,23 @@ def main(args):
     all_tracks = json.loads(r.text)
 
     # Create a download dir, if one isn't made already.
-    directory = 'soundcloud-downloader/' + all_tracks[0]['user']['permalink']
+    directory = os.path.join('soundcloud-downloader', all_tracks[0]['user']['permalink'])
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     track_amount = len(all_tracks)
-    track_number = 1
 
-    for this_song in all_tracks:
+    for track_number, this_song in enumerate(all_tracks, start=1):
         # Grab links and filenames for the current song
         song_links = get_song_links(this_song['permalink_url'])
-        print """Currently downloading song {}/{} ({})...\n
-                ----------------------""".format(track_number, track_amount, this_song['title'])
+        print """Currently downloading song {}/{} ({})...\n----------------------""".format(track_number, track_amount,
+                                                                                            this_song['title'])
 
         # Download and ID3 tag the file
-        os.system("wget -c '{}' -O '{}/{}'".format(song_links['url'], directory, song_links['name']))
-        file_location = "{}/{}".format(directory, song_links['name'])
+        file_location = os.path.join(directory, song_links['name'])
+        os.system("wget -c '{}' -O '{}'".format(song_links['url'], file_location))
         tag_file(file_location, this_song['title'], this_song['user']['username'], this_song['genre'])
 
-        track_number += 1
         print "\n\n"
 
     print "All songs downloaded! Navigate to {} in {}'s directory to see your music.\n".format(directory, sys.argv[0])
