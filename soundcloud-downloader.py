@@ -1,6 +1,15 @@
-import json, requests, os, mutagen, argparse, platform, sys
+import json
+import os
+import argparse
+import platform
+import sys
+
+import requests
+import mutagen
 from robobrowser import RoboBrowser
 from mutagen.easyid3 import EasyID3
+
+
 CLIENTID = "2412b70da476791567d496f0f3c26b88"
 
 
@@ -12,7 +21,8 @@ def clear_screen():
 
 
 def resolve_profile_url(friendly_url):
-    r = requests.get('http://api.soundcloud.com/resolve.json?url='+friendly_url+'/tracks&client_id='+CLIENTID, allow_redirects=False)
+    r = requests.get('http://api.soundcloud.com/resolve.json?url={}/tracks&client_id={}'.format(friendly_url, CLIENTID),
+                     allow_redirects=False)
     resolved_profile_uri = json.loads(r.text)['location']
     return resolved_profile_uri
 
@@ -62,7 +72,7 @@ def main(args):
     all_tracks = json.loads(r.text)
 
     # Create a download dir, if one isn't made already.
-    directory = 'soundcloud-downloader/'+all_tracks[0]['user']['permalink']
+    directory = 'soundcloud-downloader/' + all_tracks[0]['user']['permalink']
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -72,18 +82,18 @@ def main(args):
     for this_song in all_tracks:
         # Grab links and filenames for the current song
         song_links = get_song_links(this_song['permalink_url'])
-        print "Currently downloading song " + str(track_number) + "/" + str(track_amount) + " (" + this_song['title'] + \
-              ")...\n--------------------------------------\n"
+        print """Currently downloading song {}/{} ({})...\n
+                ----------------------""".format(track_number, track_amount, this_song['title'])
 
         # Download and ID3 tag the file
-        os.system("wget -c '" + song_links['url'] + "' -O '"+directory+"/"+song_links['name'] +"'")
-        file_location = directory+"/"+song_links['name']
+        os.system("wget -c '{}' -O '{}/{}'".format(song_links['url'], directory, song_links['name']))
+        file_location = "{}/{}".format(directory, song_links['name'])
         tag_file(file_location, this_song['title'], this_song['user']['username'], this_song['genre'])
 
         track_number += 1
         print "\n\n"
 
-    print "All songs downloaded! Navigate to " + directory + " in " + sys.argv[0] + "'s directory to see your music.\n"
+    print "All songs downloaded! Navigate to {} in {}'s directory to see your music.\n".format(directory, sys.argv[0])
 
 
 if __name__ == '__main__':
