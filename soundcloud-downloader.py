@@ -18,7 +18,7 @@ def resolveProfileURL(friendlyURL):
 	resolvedProfileURI = json.loads(r.text)['location']
 	return resolvedProfileURI
 
-def downloadSound(soundcloudURL):
+def getSongLinks(soundcloudURL):
 	browser = RoboBrowser(history=False)
 
 	# Go to SoundFlush and ask to rip the specified track.
@@ -71,7 +71,7 @@ trackNumber = 1
 
 for thisSong in allTracks:
 	# Grab links and filenames for the current song
-	songLinks = downloadSound(thisSong['permalink_url'])
+	songLinks = getSongLinks(thisSong['permalink_url'])
 	print "Currently downloading song " + str(trackNumber) + "/" + str(trackAmount) + " (" + thisSong['title'] + ")...\n--------------------------------------\n"
 
 	# Download and ID3 tag the file
