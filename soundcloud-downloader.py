@@ -1,85 +1,101 @@
-import json, requests, os, mutagen, argparse, platform, sys
+import json
+import os
+import argparse
+import platform
+import sys
+
+import requests
+import mutagen
 from robobrowser import RoboBrowser
 from mutagen.easyid3 import EasyID3
+
+
 CLIENTID = "2412b70da476791567d496f0f3c26b88"
 
-parser = argparse.ArgumentParser(description="Download a SoundCloud user's music. All of it.")
-parser.add_argument('profilelink', metavar='profilelink', help="The user's SoundCloud profile URL.")
-args = parser.parse_args()
 
-def clearScreen():
-	if platform.system() == 'Windows':
-		os.system('cls')
-	else:
-		os.system('clear')
+def clear_screen():
+    if platform.system() == 'Windows':
+        os.system('cls')
+    else:
+        os.system('clear')
 
-def resolveProfileURL(friendlyURL):
-	r = requests.get('http://api.soundcloud.com/resolve.json?url='+friendlyURL+'/tracks&client_id='+CLIENTID, allow_redirects=False)
-	resolvedProfileURI = json.loads(r.text)['location']
-	return resolvedProfileURI
 
-def getSongLinks(soundcloudURL):
-	browser = RoboBrowser(history=False)
+def resolve_profile_url(friendly_url):
+    r = requests.get('http://api.soundcloud.com/resolve.json?url={}/tracks&client_id={}'.format(friendly_url, CLIENTID),
+                     allow_redirects=False)
+    resolved_profile_uri = json.loads(r.text)['location']
+    return resolved_profile_uri
 
-	# Go to SoundFlush and ask to rip the specified track.
-	browser.open('http://soundflush.com/')
-	form = browser.get_form(id='form_download')
-	form['track_url'].value = soundcloudURL
-	browser.submit_form(form)
 
-	# Grab the download link and filename from the download page.
-	downloadLink = browser.select('a#btn_save')[0]
-	downloadURL = downloadLink['href']
-	downloadName = downloadLink['download']
-	return {'url' : downloadURL, 'name' : downloadName}
+def get_song_links(soundcloud_url):
+    browser = RoboBrowser(history=False)
 
-def tagFile(fileName, songTitle, songArtist, songGenre):
-	filePath = fileName
-	try:
-		meta = EasyID3(filePath)
-	except mutagen.id3.ID3NoHeaderError:
-		meta = mutagen.File(filePath, easy=True)
-		meta.add_tags()
+    # Go to SoundFlush and ask to rip the specified track.
+    browser.open('http://soundflush.com/')
+    form = browser.get_form(id='form_download')
+    form['track_url'].value = soundcloud_url
+    browser.submit_form(form)
 
-	meta['title'] = thisSong['title']
-	meta['artist'] = thisSong['user']['username']
-	meta['genre'] = thisSong['genre']
-	meta.save()
+    # Grab the download link and filename from the download page.
+    download_link = browser.select('a#btn_save')[0]
+    download_url = download_link['href']
+    download_name = download_link['download']
+    return {'url': download_url, 'name': download_name}
 
-#==============================================================================#
-# Begin
-clearScreen()
-print "SoundCloud Page Downloader\nBy J. Merriman - http://chainsawpolice.github.io/\n"
 
-# Clean up the profile URL to make sure it contains no slash at the end.
-if args.profilelink.endswith('/'):
-	resolvedProfileURI = resolveProfileURL(args.profilelink[:-1])
-else:
-	resolvedProfileURI = resolveProfileURL(args.profilelink)
+def tag_file(file_name, song_title, song_artist, song_genre):
+    file_path = file_name
+    try:
+        meta = EasyID3(file_path)
+    except mutagen.id3.ID3NoHeaderError:
+        meta = mutagen.File(file_path, easy=True)
+        meta.add_tags()
 
-# Get all the user's tracks
-r = requests.get(resolvedProfileURI)
-allTracks = json.loads(r.text)
+    meta['title'] = song_title
+    meta['artist'] = song_artist
+    meta['genre'] = song_genre
+    meta.save()
 
-# Create a download dir, if one isn't made already.
-directory = 'soundcloud-downloader/'+allTracks[0]['user']['permalink']
-if not os.path.exists(directory):
-	os.makedirs(directory)
 
-trackAmount = len(allTracks)
-trackNumber = 1
+def main(args):
+    clear_screen()
+    print "SoundCloud Page Downloader\nBy J. Merriman - http://chainsawpolice.github.io/\n"
 
-for thisSong in allTracks:
-	# Grab links and filenames for the current song
-	songLinks = getSongLinks(thisSong['permalink_url'])
-	print "Currently downloading song " + str(trackNumber) + "/" + str(trackAmount) + " (" + thisSong['title'] + ")...\n--------------------------------------\n"
+    # Clean up the profile URL to make sure it contains no slash at the end.
+    if args.profilelink.endswith('/'):
+        resolved_profile_uri = resolve_profile_url(args.profilelink[:-1])
+    else:
+        resolved_profile_uri = resolve_profile_url(args.profilelink)
 
-	# Download and ID3 tag the file
-	os.system("wget -c '" + songLinks['url'] + "' -O '"+directory+"/"+songLinks['name'] +"'")
-	fileLocation = directory+"/"+songLinks['name']
-	tagFile(fileLocation, thisSong['title'], thisSong['user']['username'], thisSong['genre'])
+    # Get all the user's tracks
+    r = requests.get(resolved_profile_uri)
+    all_tracks = json.loads(r.text)
 
-	trackNumber += 1
-	print "\n\n"
+    # Create a download dir, if one isn't made already.
+    directory = os.path.join('soundcloud-downloader', all_tracks[0]['user']['permalink'])
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-print "All songs downloaded! Navigate to " + directory + " in " + sys.argv[0] + "'s directory to see your music.\n"
+    track_amount = len(all_tracks)
+
+    for track_number, this_song in enumerate(all_tracks, start=1):
+        # Grab links and filenames for the current song
+        song_links = get_song_links(this_song['permalink_url'])
+        print """Currently downloading song {}/{} ({})...\n----------------------""".format(track_number, track_amount,
+                                                                                            this_song['title'])
+
+        # Download and ID3 tag the file
+        file_location = os.path.join(directory, song_links['name'])
+        os.system("wget -c '{}' -O '{}'".format(song_links['url'], file_location))
+        tag_file(file_location, this_song['title'], this_song['user']['username'], this_song['genre'])
+
+        print "\n\n"
+
+    print "All songs downloaded! Navigate to {} in {}'s directory to see your music.\n".format(directory, sys.argv[0])
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Download a SoundCloud user's music. All of it.")
+    parser.add_argument('profilelink', metavar='profilelink', help="The user's SoundCloud profile URL.")
+    parsed_args = parser.parse_args()
+    main(parsed_args)
