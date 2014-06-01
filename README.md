@@ -3,7 +3,7 @@ SoundCloud Page Downloader
 
 Download a SoundCloud user's music. All of it. Also takes care of ID3 tagging the files for you.
 
-**Note:** Requires Requests and Mutagen packages to run. Simply do `pip install requests robobrowser` before installing.
+**Note:** Requires Requests and Mutagen packages to run. Simply do `pip install requests mutagen` before installing.
 
 **Usage Examples:**
 * `python soundcloud-downloader.py` will prompt you to enter an artist name to download from.
