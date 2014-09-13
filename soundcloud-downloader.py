@@ -31,6 +31,8 @@ def get_profile_tracks(tracks_url):
 
 def get_download_link(waveform_url):
     unique_id = waveform_url[21:][:-6]
+    if unique_id.startswith('/'):
+        unique_id = unique_id[1:]
     return 'http://media.soundcloud.com/stream/{}'.format(unique_id)
 
 
