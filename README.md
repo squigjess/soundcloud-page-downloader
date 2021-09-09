@@ -1,6 +1,8 @@
 SoundCloud Page Downloader
 ==========================
 
+# This project is temporarily dead until I see if I can update it to work with modern SoundCloud.
+
 Download a SoundCloud user's music. All of it. Also takes care of ID3 tagging the files for you.
 
 **Installation:**
